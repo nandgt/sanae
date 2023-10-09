@@ -14,6 +14,7 @@ const (
 	WRITE   TokenType = "WRITE"
 	MOVER   TokenType = "MOVER"
 	MOVEL   TokenType = "MOVEL"
+	HALT    TokenType = "HALT"
 	OPERAND TokenType = "OPERAND"
 )
 
@@ -23,7 +24,7 @@ type Token struct {
 }
 
 type Lexer struct {
-	Command       string
+	Text          string
 	Position      int
 	PreviousToken Token
 }
@@ -34,8 +35,8 @@ func NewLexer(cmd string) Lexer {
 
 func (l *Lexer) getCurrentWord() string {
 	var word string
-	for l.Position < len(l.Command) {
-		char := rune(l.Command[l.Position])
+	for l.Position < len(l.Text) {
+		char := rune(l.Text[l.Position])
 		if unicode.IsSpace(char) {
 			l.Position--
 			break
@@ -69,6 +70,8 @@ func (l *Lexer) tokenizeInstruction() Token {
 		token = Token{MOVER, 1}
 	case "movel":
 		token = Token{MOVEL, 1}
+	case "halt":
+		token = Token{HALT, 0}
 	default:
 		panic(fmt.Errorf("syntax error: %s isn't an instruction", word))
 	}
@@ -78,8 +81,8 @@ func (l *Lexer) tokenizeInstruction() Token {
 
 func (l *Lexer) Tokenize() []Token {
 	var tokens []Token
-	for l.Position < len(l.Command) {
-		char := rune(l.Command[l.Position])
+	for l.Position < len(l.Text) {
+		char := rune(l.Text[l.Position])
 		if unicode.IsLetter(char) {
 			tokens = append(tokens, l.tokenizeInstruction())
 		} else if unicode.IsDigit(char) {
