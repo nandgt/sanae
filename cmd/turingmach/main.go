@@ -7,9 +7,6 @@ import (
 )
 
 func main() {
-	tape := []int{1, 2, 3, 4, 5, 6, 7}
-	machine := turingmach.NewMachine(tape)
-
 	firstCmd := turingmach.NewCommand(1, "write 2 mover", 1)
 	secondCmd := turingmach.NewCommand(2, "write 4 mover", 1)
 	firstState := turingmach.NewState([]turingmach.Command{firstCmd, secondCmd})
@@ -20,7 +17,10 @@ func main() {
 
 	algorithm := turingmach.NewAlgorithm([]turingmach.State{firstState, secondState})
 
+	tape := []int{1, 2, 3, 4, 5, 6, 7}
+	machine := turingmach.NewMachine(tape, algorithm)
+
 	fmt.Println(machine.Tape)
-	machine.Exec(algorithm)
+	machine.Exec()
 	fmt.Println(machine.Tape)
 }
