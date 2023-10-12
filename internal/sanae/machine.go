@@ -1,4 +1,4 @@
-package turingmach
+package sanae
 
 type Command struct {
 	Condition    int

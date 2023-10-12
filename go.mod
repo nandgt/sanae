@@ -1,3 +1,3 @@
-module github.com/nobytesguy/turing_machine
+module github.com/nobytesguy/sanae
 
 go 1.21.1
