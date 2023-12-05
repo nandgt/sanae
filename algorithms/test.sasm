@@ -1,5 +1,1 @@
 if 1 write 2 mover 1 goto 1
-if 2 write 4 mover 1 goto 1
-
-if 2 write 4 halt
-if 4 write 8 halt
