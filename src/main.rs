@@ -15,73 +15,110 @@ enum Tokens {
     Write(i32)
 }
 
-struct Lexer<'a> {
-    command: Vec<&'a str>,
+struct Parser<'a> {
+    lexemes: Vec<&'a str>,
     pointer: usize,
 }
 
-impl<'a> Lexer<'a> {
+#[derive(Debug)]
+#[allow(dead_code)]
+struct Command {
+    condition: i32,
+    to_do: Vec<Tokens>,
+    in_end: Tokens
+}
+
+impl<'a> Parser<'a> {
     fn new(algorithm: &'a str) -> Self {
-        let words: Vec<&str> = algorithm
+        let lexemes: Vec<&str> = algorithm
             .trim()
             .split_whitespace()
             .collect();
         Self {
-            command: words,
+            lexemes,
             pointer: 0,
         }
     }
 
-    fn peek_token(&mut self) -> Tokens {
-        if self.pointer >= self.command.len() {
+    fn next_token(&mut self) -> Tokens {
+        if self.pointer >= self.lexemes.len() {
             return Tokens::Eof;
         }
         
-        let word = self.command[self.pointer];
+        let lexeme = self.lexemes[self.pointer];
         self.pointer += 1;
     
-        if let Ok(number) = word.parse::<i32>() {
+        if let Ok(number) = lexeme.parse::<i32>() {
             return Tokens::Operand(number);
         }
     
-        match word {
+        match lexeme {
             "if" | "write" | "mover" | "movel" | "goto" => {
-                let next_token = self.peek_token();
-                if let Tokens::Operand(value) = next_token {
-                    match word {
-                        "if" => return Tokens::If(value),
-                        "write" => return Tokens::Write(value),
-                        "mover" => return Tokens::Mover(value),
-                        "movel" => return Tokens::Movel(value),
-                        "goto" => return Tokens::Goto(value),
-                        _ => unreachable!(),
-                    };
-                } else {
-                    panic!("sanae: syntax error: must provide an operand to '{word}'");
-                }
+                let value = match self.next_token() {
+                    Tokens::Operand(value) =>
+                        value,
+                    _ =>
+                        panic!("sanae: syntax error: must provide an operand to '{lexeme}'"),
+                };
+                match lexeme {
+                    "if" =>
+                        return Tokens::If(value),
+                    "write" =>
+                        return Tokens::Write(value),
+                    "mover" =>
+                        return Tokens::Mover(value),
+                    "movel" =>
+                        return Tokens::Movel(value),
+                    "goto" =>
+                        return Tokens::Goto(value),
+                    _ =>
+                        unreachable!(),
+                };
             },
             "erase" =>
                 return Tokens::Erase,
             "halt" =>
                 return Tokens::Halt,
             _ =>
-                return Tokens::Illegal(word.to_string()),
+                return Tokens::Illegal(lexeme.to_string()),
         }
     }
 
-    fn tokenize(&mut self) -> Vec<Tokens> {
-        let mut tokens: Vec<Tokens> = Vec::new();
-    
-        while self.pointer < self.command.len() {
-            let current_token = self.peek_token();
-            match current_token {
-                Tokens::Operand(value) => panic!("sanae: syntax error: '{value}' operand is misplaced"),
-                Tokens::Eof => break,
-                _ => tokens.push(current_token),
+    fn parse_command(&mut self) -> Command {
+        let mut to_do: Vec<Tokens> = Vec::new();
+
+        let condition = match self.next_token() {
+            Tokens::If(value) =>
+                value,
+            _ =>
+                panic!("sanae: syntax error: every command must start with an if instruction"),
+        };
+
+        while self.pointer < self.lexemes.len() - 2 {
+            match self.next_token() {
+                Tokens::Operand(value) =>
+                    panic!("sanae: syntax error: '{value}' operand is misplaced"),
+                Tokens::Illegal(lexeme) =>
+                    panic!("sanae: syntax error: '{lexeme}' is not a valid instruction"),
+                Tokens::Eof =>
+                    break,
+                token @ _ =>
+                    to_do.push(token),
             }
         }
-    
-        return tokens;
+
+        let in_end = match self.next_token() {
+            last_token @ (Tokens::Goto(_) | Tokens::Halt) =>
+                last_token,
+            _ =>
+                panic!("sanae: syntax error: every command must end with a halt or a goto instruction"),
+        };
+
+        return Command {
+            condition,
+            to_do,
+            in_end
+        };
     }
 }
 
@@ -91,7 +128,7 @@ fn main() {
     let algorithm = fs::read_to_string("algorithms/test.sasm")
         .expect("sanae: could not read file");
     
-    let mut lex = Lexer::new(&algorithm);
-    let tokens = lex.tokenize();
+    let mut parser = Parser::new(&algorithm);
+    let tokens = parser.parse_command();
     println!("{:?}", tokens);
 }
